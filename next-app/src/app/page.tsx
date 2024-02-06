@@ -1,34 +1,34 @@
 "use client";
-import FormSearch from "@/components/general/form.search";
-import { Typography } from "antd";
-import React, { useEffect } from "react";
-import TableData from "@/components/general/table.table";
-import axios from "axios";
+import { useEffect } from "react";
+import axiosInstance from "@/utils/axios";
 import { DataStore } from "@/store/data.store";
+import FormSearch from "@/components/general/form.search";
+import TableData from "@/components/general/table.table";
 
 const App = () => {
   const setData = DataStore((state) => state.setData);
   const data = DataStore((state) => state.data);
+
   const fetchDataInitial = async () => {
     try {
-      const response = await axios.get(
-        "http://localhost:8000/get_data_initials"
-      );
-      if (response.data) {
-        setData(response.data);
-        console.log(response.data)
+      const response = await axiosInstance.get("/commons/get_data_initials");
+      if (response.data && response.data.data) {
+        setData(response.data.data);
       }
     } catch (err) {
       console.error(err);
     }
   };
+
   useEffect(() => {
     fetchDataInitial();
+
   }, []);
+
   return (
     <>
       <FormSearch />
-      <TableData data={data}/>
+      <TableData data={data} />
     </>
   );
 };

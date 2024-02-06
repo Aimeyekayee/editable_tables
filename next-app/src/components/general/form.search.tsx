@@ -17,7 +17,7 @@ const FormSearch = () => {
           flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
-          gap:"1rem"
+          gap: "1rem",
         }}
       >
         <Typography style={{ fontSize: "2rem", fontWeight: "500" }}>

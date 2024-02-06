@@ -1,10 +1,25 @@
-from sqlalchemy import create_engine
+import os
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
+import urllib.parse
+from dotenv import load_dotenv
 
-SQLALCHEMY_DATABASE_URL = 'postgresql://postgres:postgres@127.0.0.1:5432/test' #db name = numji 
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL
+load_dotenv()
+
+PG_USER_COMMON = os.environ.get("PG_USER_COMMON")
+PG_PASS_COMMON = urllib.parse.quote_plus(os.environ.get("PG_PASS_COMMON"))
+PG_SERVER_COMMON = os.environ.get("PG_SERVER_COMMON")
+PG_PORT_COMMON = os.environ.get("PG_PORT_COMMON")
+PG_DB_COMMON = os.environ.get("PG_DB_COMMON")
+
+
+PG_ASYNC_SQLALCHEMY_DATABASE_URL_COMMON = f"postgresql+asyncpg://{PG_USER_COMMON}:{PG_PASS_COMMON}@{PG_SERVER_COMMON}:{PG_PORT_COMMON}/{PG_DB_COMMON}"
+common_pg_async_engine = create_async_engine(
+    PG_ASYNC_SQLALCHEMY_DATABASE_URL_COMMON, echo=True, pool_size=40, max_overflow=0
 )
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+common_pg_async_session = sessionmaker(
+    common_pg_async_engine, expire_on_commit=False, class_=AsyncSession
+)
+
 Base = declarative_base()

@@ -1,23 +1,15 @@
-#from typing import Union
-from fastapi import FastAPI,Depends,HTTPException
+import uvicorn
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List, Dict, Any,Optional,Union
-from sqlalchemy.orm import Session
-from .database import SessionLocal,engine
-from .schemas import DataResponse
-from . import crud
-import json
-import datetime
+from fastapi.staticfiles import StaticFiles
+
+# need import models for auto create
+from app.routers import commons_routers,static_routers
+from app.dependencies import get_common_pg_async_db
 
 app = FastAPI()
-origins = ["*"]
 
-def get_db():
-    db =SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -27,22 +19,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(commons_routers(get_common_pg_async_db), prefix="/api/commons")
+app.include_router(static_routers(get_common_pg_async_db), prefix="/api/static")
+app.mount("/api/static", StaticFiles(directory="uploaded_files"), name="/api/static")
 
-@app.get("/get_data_initials",response_model=List[DataResponse])
-async def get_data(db: Session = Depends(get_db)):
-    try:
-        data = await crud.get_data(db=db)  
-        response_data = []
-        for item in data:
-            response_item = DataResponse(
-                id=item.id,
-                part_no=item.part_no,
-                plc_data=item.plc_data,
-                image_path=item.image_path,
-                created_at=item.created_at,
-                updated_at=item.updated_at
-            )
-            response_data.append(response_item)
-        return response_data
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
