@@ -12,6 +12,7 @@ import {
 } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import { DataSource, ImagePath } from "@/types/wi.types";
+import { UploadOutlined } from "@ant-design/icons";
 import { DataStore } from "@/store/data.store";
 import environment from "@/utils/environment";
 import axiosInstance from "@/utils/axios";
@@ -37,6 +38,7 @@ const TableData: React.FC<Props> = ({ data }) => {
   const isEditing = (record: Item) => record.key === editingKey;
   const [dataTable, setDataTable] = useState<Item[]>([]);
   const [uploadList, setUploadList] = useState<UploadFile[]>([]);
+  const [filesPath, setFilesPath] = useState([{}]);
 
   useEffect(() => {
     const newData = data.map((item: any) => ({
@@ -55,6 +57,25 @@ const TableData: React.FC<Props> = ({ data }) => {
     setEditingKey("");
   };
 
+  const savetoDb = async (savedItem: any, filesPath: any) => {
+    //หา type เฉพาะมาใส่แทน any ด้วย
+    //หา type เฉพาะมาใส่แทน any ด้วย
+    //หา type เฉพาะมาใส่แทน any ด้วย
+    savedItem.image_path = filesPath;
+    console.log(savedItem)
+    try {
+      const response = await axiosInstance.put(
+        "/commons/update_data",
+        savedItem
+      );
+      if (response.status === 200) {
+        setUploadList([])
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const save = async (key: React.Key) => {
     try {
       const row = await form.validateFields();
@@ -69,13 +90,18 @@ const TableData: React.FC<Props> = ({ data }) => {
         newData.splice(index, 1, updatedItem);
         setDataTable(newData);
         setEditingKey("");
+        console.log(uploadList);
         try {
-          const response = await axiosInstance.put(
-            "/commons/update_data",
-            savedItem
+          const formData = new FormData();
+          uploadList.forEach((file) => {
+            formData.append("file_uploads", file.originFileObj as File);
+          });
+          const response = await axiosInstance.post(
+            "/commons/upload",
+            formData
           );
           if (response.status === 200) {
-            console.log(response.data);
+            savetoDb(savedItem, response.data);
           }
         } catch (err) {
           console.error(err);
@@ -113,7 +139,7 @@ const TableData: React.FC<Props> = ({ data }) => {
     "image/x-raw",
   ];
 
-  const uploadProps: UploadProps = {
+  const props: UploadProps = {
     name: "file",
     action: `${environment.API_URL}/static/temp`,
     multiple: true,
@@ -177,42 +203,47 @@ const TableData: React.FC<Props> = ({ data }) => {
         );
       },
     },
-    // {
-    //   title: "Images",
-    //   render: (_: any, record: Item) => {
-    //     const editable = isEditing(record);
-    //     return editable ? (
-    //       <Upload {...uploadProps}>
-    //         <Button icon={<PlusOutlined />} />
-    //       </Upload>
-    //     ) : (
-    //       <div>
-    //         {record.image_path.map((image: any, index: any) => (
-    //           <Image
-    //             key={`${record.key}-${index}`}
-    //             src={`${environment.API_URL}${image.url}`}
-    //             alt={`Image ${index}`}
-    //           />
-    //         ))}
-    //       </div>
-    //     );
-    //   },
-    // },
     {
       title: "Images",
       render: (text: any, record: any) => (
         <div>
-          {record.image_path.map((image: any, index: any) => (
-            <Image
-              key={`${record.id}-${index}`}
-              src={`${environment.API_URL}${image.url}`}
-              alt={`Image ${index}`}
-            />
-          ))}
+          {isEditing(record) ? (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              {record.image_path.map((image: any, index: any) => (
+                <div key={`${record.id}-${index}`}>
+                  <Image
+                    src={`${environment.API_URL}${image.url}`}
+                    alt={`Image ${index}`}
+                    height={50}
+                  />
+                  <br />
+                </div>
+              ))}
+              <Upload {...props}>
+                <Button icon={<UploadOutlined />}>Click to Upload</Button>
+              </Upload>
+            </div>
+          ) : (
+            record.image_path.map((image: any, index: any) => (
+              <div key={`${record.id}-${index}`}>
+                <Image
+                  src={`${environment.API_URL}${image.url}`}
+                  alt={`Image ${index}`}
+                  height={50}
+                />
+                <br />
+              </div>
+            ))
+          )}
         </div>
       ),
     },
-
     {
       title: "Operation",
       dataIndex: "operation",

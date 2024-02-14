@@ -6,7 +6,11 @@ import json
 import string
 import os
 from app.schemas.commons import (
-    DataInitalsResponse,DataInitals
+    DataInitalsResponse,
+    DataInitals,
+    LineNameResponse,
+    ProcessResponse,
+    PartNoResponse,
 )
 from app.manager import CommonsManager
 from app.functions import api_key_auth
@@ -26,24 +30,56 @@ def commons_routers(db: AsyncGenerator) -> APIRouter:
             data_initials = await manager.get_data_initials(db=db)
             return DataInitalsResponse(data=data_initials)
         except Exception as e:
-            raise HTTPException(
-                status_code=400, detail=f"Error during get data1 : {e}"
-            )
-        
+            raise HTTPException(status_code=400, detail=f"Error during get data1 : {e}")
+
+    @router.get(
+        "/line_name",
+        response_model=LineNameResponse,
+        dependencies=[Depends(api_key_auth)],
+    )
+    async def get_line_name(db: AsyncSession = Depends(db)):
+        try:
+            line_name = await manager.get_line_name(db=db)
+            return LineNameResponse(line_name=line_name)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Error during get data1 : {e}")
+
+    @router.get(
+        "/process",
+        response_model=ProcessResponse,
+        dependencies=[Depends(api_key_auth)],
+    )
+    async def get_process(line_name=str, db: AsyncSession = Depends(db)):
+        try:
+            process = await manager.get_process(line_name=line_name, db=db)
+            return ProcessResponse(process=process)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Error during get data1 : {e}")
+
+    @router.get(
+        "/part_no",
+        response_model=PartNoResponse,
+        dependencies=[Depends(api_key_auth)],
+    )
+    async def get_partno(process=str, db: AsyncSession = Depends(db)):
+        try:
+            part_no = await manager.get_partno(process=process, db=db)
+            return PartNoResponse(part_no=part_no)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Error during get data1 : {e}")
+
     @router.put(
         "/update_data",
         dependencies=[Depends(api_key_auth)],
     )
-    async def update_data(item:DataInitals,db: AsyncSession = Depends(db)):
+    async def update_data(item: DataInitals, db: AsyncSession = Depends(db)):
         try:
             item.image_path = json.dumps(item.image_path)
-            update_data = await manager.update_data(item,db=db)
+            update_data = await manager.update_data(item, db=db)
             return {"success": True}
         except Exception as e:
-            raise HTTPException(
-                status_code=400, detail=f"Error during update : {e}"
-            )
-        
+            raise HTTPException(status_code=400, detail=f"Error during update : {e}")
+
     @router.post("/upload", response_model=List[dict])
     async def create_upload_file(file_uploads: list[UploadFile]):
         file_info_list = []
@@ -66,4 +102,5 @@ def commons_routers(db: AsyncGenerator) -> APIRouter:
                     status_code=500, detail=f"Error processing file: {str(e)}"
                 )
         return file_info_list
+
     return router

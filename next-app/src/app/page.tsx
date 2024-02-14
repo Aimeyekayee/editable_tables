@@ -9,20 +9,19 @@ const App = () => {
   const setData = DataStore((state) => state.setData);
   const data = DataStore((state) => state.data);
 
-  const fetchDataInitial = async () => {
-    try {
-      const response = await axiosInstance.get("/commons/get_data_initials");
-      if (response.data && response.data.data) {
-        setData(response.data.data);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   useEffect(() => {
+    const fetchDataInitial = async () => {
+      try {
+        const response = await axiosInstance.get("/commons/get_data_initials");
+        if (response.data && response.data.data) {
+          setData(response.data.data);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
     fetchDataInitial();
-
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
