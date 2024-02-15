@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import text
 from fastapi import HTTPException
 from typing import Optional, List, Dict, Any, Union
-from app.schemas.commons import DataInitals
+from app.schemas.commons import DataInitals, FormSearch, PostItem, UpsertItem
 
 
 def convert_result(res):
@@ -23,6 +23,26 @@ class CommonsCRUD:
             """
             rs = await db.execute(
                 text(stmt),
+            )
+            return rs
+        except Exception as e:
+            print(f"Error during get data: {e}")
+            raise HTTPException(status_code=400, detail=f"Bad Requst: {e}")
+
+    async def get_data_by_search(
+        self,
+        line_name: str,
+        process: str,
+        db: AsyncSession,
+    ):
+        try:
+            stmt = f"""
+            SELECT * FROM wi_data
+            WHERE line_name = :line_name AND process = :process
+            """
+            rs = await db.execute(
+                text(stmt),
+                params={"line_name": line_name, "process": process},
             )
             return rs
         except Exception as e:
@@ -91,7 +111,49 @@ class CommonsCRUD:
         """
         rs = await db.execute(
             text(stmt),
-            params={"id": item.id, "plc_data": item.plc_data, "part_no": item.part_no,"image_path": item.image_path,},
+            params={
+                "id": item.id,
+                "plc_data": item.plc_data,
+                "part_no": item.part_no,
+                "image_path": item.image_path,
+            },
         )
         await db.commit()  # Corrected the missing parentheses
+        return rs
+
+    async def upsert_wi_info_with_id(self, upsertItem: UpsertItem, db: AsyncSession):
+        stmt = f"""
+        UPDATE wi_data
+        SET part_no=:part_no, plc_data=:plc_data, image_path=cast(:image_path AS jsonb)
+        WHERE id = :id;
+        """
+        rs = await db.execute(
+            text(stmt),
+            params={
+                "id": item.id,
+                "plc_data": item.plc_data,
+                "part_no": item.part_no,
+                "image_path": item.image_path,
+            },
+        )
+        await db.commit()  # Corrected the missing parentheses
+        return rs
+
+    async def post_data(self, postItem: PostItem, db: AsyncSession):
+        stmt = f"""
+        INSERT INTO wi_data(
+	    part_no, plc_data,line_name, process, image_path)
+	    VALUES (:part_no, :plc_data, :line_name, :process, cast(:image_path AS jsonb))
+        """
+        rs = await db.execute(
+            text(stmt),
+            params={
+                "part_no": postItem.part_no,
+                "plc_data": postItem.plc_data,
+                "line_name": postItem.line_name,
+                "process": postItem.process,
+                "image_path": postItem.image_path,
+            },
+        )
+        await db.commit()
         return rs

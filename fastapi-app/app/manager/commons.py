@@ -1,6 +1,14 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.crud import CommonsCRUD
-from app.schemas.commons import DataInitals, LineName, Process, PartNo
+from app.schemas.commons import (
+    DataInitals,
+    LineName,
+    Process,
+    PartNo,
+    FormSearch,
+    PostItem,
+    UpsertItem,
+)
 import json
 from typing import Optional, List, Dict, Any, Union
 import datetime
@@ -86,3 +94,45 @@ class CommonsManager:
     ):
         await self.crud.update_data(db=db, item=item)
         return True
+
+    async def upsert_wi_info_with_id(
+        self,
+        upsertItem: UpsertItem,
+        db: AsyncSession = None,
+    ):
+        await self.crud.upsert_wi_info_with_id(db=db, upsertItem=upsertItem)
+        return True
+
+    async def post_data(
+        self,
+        postItem: PostItem,
+        db: AsyncSession = None,
+    ):
+        await self.crud.post_data(db=db, postItem=postItem)
+        return True
+
+    async def get_data_by_search(
+        self,
+        line_name: str,
+        process: str,
+        db: AsyncSession = None,
+    ):
+        res = await self.crud.get_data_by_search(
+            line_name=line_name, process=process, db=db
+        )
+        return_list = []
+        for r in res:
+            key_index = r._key_to_index
+            return_list.append(
+                DataInitals(
+                    id=r[key_index["id"]],
+                    line_name=r[key_index["line_name"]],
+                    process=r[key_index["process"]],
+                    part_no=r[key_index["part_no"]],
+                    plc_data=r[key_index["plc_data"]],
+                    updated_at=r[key_index["updated_at"]],
+                    created_at=r[key_index["created_at"]],
+                    image_path=r[key_index["image_path"]],
+                )
+            )
+        return return_list

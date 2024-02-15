@@ -11,6 +11,9 @@ from app.schemas.commons import (
     LineNameResponse,
     ProcessResponse,
     PartNoResponse,
+    FormSearch,
+    PostItem,
+    UpsertItem
 )
 from app.manager import CommonsManager
 from app.functions import api_key_auth
@@ -76,7 +79,49 @@ def commons_routers(db: AsyncGenerator) -> APIRouter:
         try:
             item.image_path = json.dumps(item.image_path)
             update_data = await manager.update_data(item, db=db)
-            return {"success": True}
+            return True
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Error during update : {e}")
+
+    @router.put(
+        "/post_data",
+        dependencies=[Depends(api_key_auth)],
+    )
+    async def post_data(postItem: PostItem, db: AsyncSession = Depends(db)):
+        try:
+            postItem.image_path = json.dumps(postItem.image_path)
+            post_data = await manager.post_data(postItem, db=db)
+            return True
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Error during update : {e}")
+        
+    
+    @router.put(
+        "/upsert_wi_info_with_id",
+        dependencies=[Depends(api_key_auth)],
+    )
+    async def upsert_wi_info_with_id(upsertItem: UpsertItem, db: AsyncSession = Depends(db)):
+        try:
+            upsert_wi_info = await manager.upsert_wi_info_with_id(upsertItem=upsertItem, db=db)
+            return True
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Error during update : {e}")
+        
+
+
+    @router.get(
+        "/get_data_by_search",
+        response_model=DataInitalsResponse,
+        dependencies=[Depends(api_key_auth)],
+    )
+    async def get_data_by_search(
+        line_name: str, process: str, db: AsyncSession = Depends(db)
+    ):
+        try:
+            get_data_by_search = await manager.get_data_by_search(
+                line_name=line_name, process=process, db=db
+            )
+            return DataInitalsResponse(data=get_data_by_search)
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Error during update : {e}")
 

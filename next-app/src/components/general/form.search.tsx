@@ -2,6 +2,8 @@
 import React, { useEffect, useState } from "react";
 import { Form, Typography, theme, Select, Space, Button } from "antd";
 import axiosInstance from "@/utils/axios";
+import { DataStore } from "@/store/data.store";
+import { useRouter } from "next/navigation";
 
 interface LineName {
   line_name: string;
@@ -14,11 +16,16 @@ interface PartNo {
 }
 
 const FormSearch = () => {
+  const router = useRouter();
   const [form] = Form.useForm();
   const [lineName, setLineName] = useState<LineName[]>([]);
   const [process, setProcess] = useState<Process[]>([]);
   const [partno, setPartNo] = useState<PartNo[]>([]);
-
+  const setLineNameQ = DataStore((state) => state.setLineName);
+  const setProcessQ = DataStore((state) => state.setProcess);
+  const processStore = DataStore((state) => state.process);
+  const line_nameStore = DataStore((state) => state.line_name);
+  const setData = DataStore((state) => state.setData);
   const FetchGetLineName = async () => {
     try {
       const response = await axiosInstance.get("/commons/line_name");
@@ -30,6 +37,7 @@ const FormSearch = () => {
     }
   };
   const handleChangeLinename = async (value: string) => {
+    setLineNameQ(value);
     try {
       const response = await axiosInstance.get(
         `/commons/process?line_name=${value}`
@@ -42,6 +50,7 @@ const FormSearch = () => {
     }
   };
   const handleChangeProcess = async (value: string) => {
+    setProcessQ(value);
     try {
       const response = await axiosInstance.get(
         `/commons/part_no?process=${value}`
@@ -53,8 +62,17 @@ const FormSearch = () => {
       console.error(err);
     }
   };
-  const onFormFinish = (v: any) => {
-    console.log(v);
+  const onFormFinish = async (v: any) => {
+    try {
+      const response = await axiosInstance.get("/commons/get_data_by_search", {
+        params: { line_name: v.line_name, process: v.process },
+      });
+      if (response.status === 200) {
+        setData(response.data.data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   useEffect(() => {
@@ -62,8 +80,11 @@ const FormSearch = () => {
   }, []);
 
   useEffect(() => {
-    console.log(lineName);
-  }, [lineName]);
+    router.replace(`/?line_name=${line_nameStore}&process=${processStore}`, {
+      scroll: false,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [line_nameStore, processStore]);
   const {
     token: { colorBgContainer, boxShadow },
   } = theme.useToken();
@@ -113,26 +134,14 @@ const FormSearch = () => {
                 })}
               </Select>
             </Form.Item>
-            <Form.Item name="part_no" label="Part Number">
-              <Select
-                style={{ width: 120 }}
-                // onChange={handleChange}
-              >
-                {partno.map((item, idx) => {
-                  return (
-                    <Select.Option key={`${item.part_no}`} value={item.part_no}>
-                      {item.part_no}
-                    </Select.Option>
-                  );
-                })}
-              </Select>
-            </Form.Item>
             <Button
               type="primary"
               onClick={() => {
                 form.submit();
               }}
-            >Search</Button>
+            >
+              Search
+            </Button>
           </Space>
         </div>
       </Form>

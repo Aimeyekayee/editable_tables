@@ -17,6 +17,7 @@ import { DataStore } from "@/store/data.store";
 import environment from "@/utils/environment";
 import axiosInstance from "@/utils/axios";
 import type { UploadProps, UploadFile } from "antd";
+import { useSearchParams } from "next/navigation";
 
 interface Props {
   data: DataSource[];
@@ -32,6 +33,7 @@ export interface Item {
 }
 
 const TableData: React.FC<Props> = ({ data }) => {
+  const searchParams = useSearchParams();
   const [form] = Form.useForm();
   const setData = DataStore((state) => state.setData);
   const [editingKey, setEditingKey] = useState("");
@@ -39,6 +41,8 @@ const TableData: React.FC<Props> = ({ data }) => {
   const [dataTable, setDataTable] = useState<Item[]>([]);
   const [uploadList, setUploadList] = useState<UploadFile[]>([]);
   const [filesPath, setFilesPath] = useState([{}]);
+  const processStore = DataStore((state) => state.process);
+  const line_nameStore = DataStore((state) => state.line_name);
 
   useEffect(() => {
     const newData = data.map((item: any) => ({
@@ -62,17 +66,56 @@ const TableData: React.FC<Props> = ({ data }) => {
     //หา type เฉพาะมาใส่แทน any ด้วย
     //หา type เฉพาะมาใส่แทน any ด้วย
     savedItem.image_path = filesPath;
-    console.log(savedItem)
-    try {
-      const response = await axiosInstance.put(
-        "/commons/update_data",
-        savedItem
-      );
-      if (response.status === 200) {
-        setUploadList([])
+    console.log(savedItem);
+    if ("id" in savedItem) {
+      try {
+        const response = await axiosInstance.put(
+          "/commons/update_data",
+          savedItem
+        );
+        if (response.status === 200) {
+          setUploadList([]);
+          if (response.data === true) {
+            try {
+              const upsertItem = {
+                id: savedItem.id,
+                line_name: searchParams.get("line_name"),
+                process: searchParams.get("process"),
+                part_no: savedItem.part_no,
+                plc_data: savedItem.plc_data,
+              };
+              const response = await axiosInstance.put(
+                "/commons/upsert_wi_info",
+                upsertItem
+              );
+            } catch (err) {
+              console.error(err);
+            }
+          }
+        }
+      } catch (err) {
+        console.error(err);
       }
-    } catch (err) {
-      console.error(err);
+    } else {
+      const postItem = {
+        line_name: searchParams.get("line_name"),
+        process: searchParams.get("process"),
+        plc_data: savedItem.plc_data,
+        part_no: savedItem.part_no,
+        image_path: filesPath,
+      };
+      try {
+        const response = await axiosInstance.put(
+          "/commons/post_data",
+          postItem
+        );
+        if (response.status === 200) {
+          console.log(response.data);
+          setUploadList([]);
+        }
+      } catch (err) {
+        console.error(err);
+      }
     }
   };
 
@@ -91,20 +134,24 @@ const TableData: React.FC<Props> = ({ data }) => {
         setDataTable(newData);
         setEditingKey("");
         console.log(uploadList);
-        try {
-          const formData = new FormData();
-          uploadList.forEach((file) => {
-            formData.append("file_uploads", file.originFileObj as File);
-          });
-          const response = await axiosInstance.post(
-            "/commons/upload",
-            formData
-          );
-          if (response.status === 200) {
-            savetoDb(savedItem, response.data);
+        if (uploadList.length < 1) {
+          savetoDb(savedItem, savedItem.image_path);
+        } else {
+          try {
+            const formData = new FormData();
+            uploadList.forEach((file) => {
+              formData.append("file_uploads", file.originFileObj as File);
+            });
+            const response = await axiosInstance.post(
+              "/commons/upload",
+              formData
+            );
+            if (response.status === 200) {
+              savetoDb(savedItem, response.data);
+            }
+          } catch (err) {
+            console.error(err);
           }
-        } catch (err) {
-          console.error(err);
         }
       }
     } catch (err) {
@@ -275,7 +322,12 @@ const TableData: React.FC<Props> = ({ data }) => {
 
   return (
     <>
-      <Button onClick={handleAdd} type="primary" style={{ marginBottom: 16 }}>
+      <Button
+        onClick={handleAdd}
+        type="primary"
+        style={{ marginBottom: 16 }}
+        disabled={line_nameStore === null || processStore === null}
+      >
         Add a row
       </Button>
       <Form form={form} component={false}>
