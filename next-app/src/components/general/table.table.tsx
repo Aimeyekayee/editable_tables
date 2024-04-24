@@ -95,6 +95,8 @@ const TableData: React.FC<Props> = ({ data }) => {
         }
       } catch (err) {
         console.error(err);
+      }finally{
+        form.resetFields()
       }
     } else {
       const postItem = {
@@ -115,6 +117,8 @@ const TableData: React.FC<Props> = ({ data }) => {
         }
       } catch (err) {
         console.error(err);
+      }finally{
+        form.resetFields()
       }
     }
   };
